@@ -1,116 +1,131 @@
 # ASL Game Tutor Project
 
-## Project Overview
-This project is an interactive **American Sign Language (ASL) Tutor Game** that uses computer vision and machine learning to help users practice spelling words using ASL hand gestures. 
+## 📘 Project Overview
+This project is an interactive **American Sign Language (ASL) Tutor Game** designed to help users learn and practice ASL alphabets using real-time feedback.
 
-The application uses your computer's webcam to track your hand in real-time, recognizes the ASL letter you are signing, and guides you through spelling various words. It leverages **MediaPipe** for hand tracking and a custom-trained **Multi-Layer Perceptron (MLP)** neural network for accurate gesture classification.
+Unlike traditional static classifiers, this application uses an **Intelligent Agent** approach. It tracks the user's hand, classifies the gesture in real-time, and adapts the gameplay by suggesting words based on the user's performance history (Rationality).
 
-## Key Concepts & Ideas
-This project demonstrates several advanced concepts in AI and Software Engineering:
+## 🛠️ Tech Stack & Key Concepts
+This project fulfills the "Integrative AI" requirement by combining two distinct AI paradigms:
 
-1.  **Computer Vision (CV):** 
-    - Uses **MediaPipe Hands** to detect and track 21 distinct hand landmarks (joints and fingertips) in real-time.
-    - Instead of processing the entire video frame (which is slow and sensitive to background noise), we focus only on the hand's geometry.
+1.  **Perception (Computer Vision & Deep Learning):**
+    *   **Feature Extraction:** Uses **MediaPipe Hands** to extract 21 skeletal landmarks $(x, y)$ from the video feed. This makes the system robust to lighting changes and background noise compared to raw image classification.
+    *   **Classification:** A custom **Multi-Layer Perceptron (MLP)** (Neural Network) trained on the feature set to classify 29 classes (A-Z, Space, Delete, Nothing).
 
-2.  **Feature Extraction:** 
-    - **Raw Data:** The input is a raw image of a hand.
-    - **Processed Data:** We convert this image into a set of **42 numerical numbers** (x and y coordinates for 21 landmarks).
-    - **Normalization:** All coordinates are relative to the wrist (landmark 0) to ensure the model works regardless of where your hand is on the screen.
+2.  **Rationality (Rule-Based Agent):**
+    *   **Tutor Logic:** A Rule-Based System that tracks the user's error rate for each letter.
+    *   **Adaptive Curriculum:** The agent prioritizes words containing letters the user struggles with (e.g., if 'A' has a high error rate, the agent selects words like "APPLE").
 
-3.  **Supervised Learning (MLP):**
-    - We use a **Multi-Layer Perceptron (MLP)**, a type of feedforward artificial neural network.
-    - The model is trained on the extracted 42 features to classify them into 29 categories (A-Z, space, delete, nothing).
-
-4.  **Game Logic:**
-    - A "debounce" system ensures a gesture is held for a minimum number of frames before being accepted, preventing flickering inputs.
-    - A state machine manages the flow of words, scoring, and user feedback.
-
-## Project Structure & Paths
-*   **`src/`**: Contains all the source code.
-    *   `create_dataset.py`: Script to process raw images and extract landmark features into a CSV.
-    *   `train_mlp.py`: Script to train the Neural Network using the CSV data.
-    *   `main.py`: The main game application.
-    *   `tutor_logic.py`: Helper class managing word selection and game state.
-    *   `words.txt`: A list of words used in the game.
-*   **`data/`**: Stores the datasets.
-    *   `raw/`: Should contain the raw ASL image dataset (e.g., from Kaggle).
-    *   `processed/`: Stores the generated `data.csv` used for training.
-*   **`models/`**: Stores the trained resources.
-    *   `mlp_model.h5`: The trained Tensorflow/Keras model.
-    *   `label_map_mlp.npy`: The mapping between number IDs and letter labels.
-*   **`requirements.txt`**: List of Python libraries required to run the project.
+## 📂 Project Structure
+*   **`src/`**: Source code directory.
+    *   `main.py`: The entry point for the game loop (Webcam UI + Agent integration).
+    *   `tutor_logic.py`: The "Brain" of the agent (Mistake tracking & Word selection).
+    *   `train_mlp.py`: Script to train the Neural Network.
+    *   `create_dataset.py`: Feature engineering script (Image -> Landmarks CSV).
+    *   `words.txt`: Dictionary of words for the game.
+*   **`data/`**: Dataset directory.
+    *   `processed/`: Contains `data.csv` (Landmark features) and `label_map.npy`.
+*   **`models/`**: Saved models.
+    *   `mlp_model.h5`: The trained Keras model used for inference.
+*   **`requirements.txt`**: List of dependencies.
 
 ---
 
-## 🚀 HOW TO RUN (Step-by-Step Guide)
-
-Follow these steps exactly to set up and run the project on your computer.
+## 🚀 Installation & Setup Guide
 
 ### 1. Prerequisites
-*   **Python:** Ensure you have Python installed (version 3.8 to 3.11 is recommended).
-*   **Webcam:** A working webcam connected to your computer.
+*   **Python 3.10 or 3.11** (Recommended).
+*   A working webcam.
 
-### 2. Installation
-1.  **Download/Clone the Project:**
-    Download this project folder to your computer.
+### 2. Set Up Virtual Environment (Highly Recommended)
+To prevent dependency conflicts, please create a virtual environment:
 
-2.  **Open Terminal:**
-    Open your command prompt (cmd), PowerShell, or terminal in VS Code and navigate to the project folder:
-    ```bash
-    cd path/to/ASL_game_tutor_project
-    ```
+**Windows:**
+```bash
+# Open terminal in project folder
+python -m venv venv
+.\venv\Scripts\activate
 
-3.  **Install Dependencies:**
-    Run the following command to install all necessary libraries:
-    ```bash
-    pip install -r requirements.txt
-    ```
+### Mac/Linux
 
-### 3. Data Setup (Only needed if retraining)
-*If you already have the `models/mlp_model.h5` file, you can skip to Step 5.*
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+*(You should see `(venv)` at the start of your terminal line).*
 
-1.  **Download Data:** Download the "ASL Alphabet" dataset (e.g., from Kaggle).
-2.  **Place Data:** Extract the images so they are in this exact structure:
-    `data/raw/asl_alphabet_train/asl_alphabet_train/[A, B, C...]`
-3.  **Generate Dataset:**
-    Run the script to extract features from the images. This creates `data/processed/data.csv`.
-    ```bash
-    cd src
-    python create_dataset.py
-    ```
+### 3. Install Dependencies
 
-### 4. Training the Model (Only needed if retraining)
-*If you already have the `models/mlp_model.h5` file, you can skip to Step 5.*
+Run the following command to install TensorFlow, MediaPipe, and OpenCV:
 
-1.  Run the training script to teach the AI how to recognize gestures:
-    ```bash
-    cd src
-    python train_mlp.py
-    ```
-    *This will create `models/mlp_model.h5` and `mlp_training_history.png`.*
+```bash
+pip install -r requirements.txt
+```
 
-### 5. Playing the Game
-Now that everything is set up, you can run the main game!
+> **Note:** The requirements file includes `numpy<2` to prevent conflicts with TensorFlow.
 
-1.  Navigate to the `src` folder (if not already there):
-    ```bash
-    cd src
-    ```
+---
 
-2.  **Run the Game:**
-    ```bash
-    python main.py
-    ```
+## 🎮 How to Run
 
-### How to Play:
-*   **Goal:** Spell the target word shown at the top of the screen.
-*   **Action:** Make the ASL sign for the highlighted letter with your hand facing the camera.
-*   **Confirm:** Hold the sign steady for about 0.5 seconds (the green bar will fill up) to confirm the letter.
+Navigate to the source folder:
+
+```bash
+cd src
+```
+
+Start the game:
+
+```bash
+python main.py
+```
+
+### Gameplay Instructions
+
+*   **Right Hand Only:** Please use your **right hand** for signing (the model is trained on right-hand data).
+*   **Mirroring:** The camera feed is mirrored horizontally for intuitive interaction.
+*   **Goal:** Spell the target word displayed at the top.
+*   **Feedback:**
+    *   **Green Box:** Indicates the hand is detected.
+    *   **Prediction:** Shows the letter the AI thinks you are signing.
+    *   **Hold to Confirm:** Hold the correct sign for **~0.5 seconds** to register the letter.
 *   **Controls:**
-    *   `N` key: Skip the current letter.
-    *   `S` key: Skip the current word.
-    *   `Q` key: Quit the game.
+    *   **Q:** Quit the game.
 
-**Troubleshooting:**
-*   **Mirroring:** The camera is flipped horizontally (like a mirror) to make it easier to coordinate your movements.
-*   **Lighting:** Ensure your hand is well-lit for the best recognition accuracy.
+---
+
+## 🔧 Troubleshooting
+
+1.  **"ModuleNotFoundError" or Import Errors**
+    *   Ensure your virtual environment is active (`(venv)` is visible).
+    *   Ensure you installed requirements: `pip install -r requirements.txt`.
+
+2.  **TensorFlow Installation Fails (Windows)**
+    *   If you get a "Long Path" error on Windows, try moving the project folder closer to the root drive (e.g., `C:\ASL_Project`).
+
+3.  **Hand Not Detected / Jittery Box**
+    *   Ensure your hand is well-lit.
+    *   The system uses MediaPipe landmarks; ensure your full hand (palm and fingers) is visible to the camera.
+
+---
+
+## 📜 Requirements.txt Reference
+
+(Ensure your `requirements.txt` contains exactly this):
+
+```text
+opencv-python
+mediapipe
+pandas
+matplotlib
+scikit-learn
+tensorflow
+numpy<2
+```
+
+---
+
+## 📚 References
+
+*   **Dataset:** ASL Alphabet Dataset (Kaggle)
+*   **Frameworks:** TensorFlow/Keras, MediaPipe Hands
