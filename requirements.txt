@@ -1,7 +1,10 @@
-opencv-python
-numpy
-scikit-learn
-tensorflow
-matplotlib
+opencv-python-headless
 mediapipe
 pandas
+matplotlib
+scikit-learn
+tensorflow-cpu
+numpy<2
+streamlit
+streamlit-webrtc
+av
