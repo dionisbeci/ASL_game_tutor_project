@@ -1,10 +1,10 @@
+streamlit
+streamlit-webrtc
 opencv-python-headless
 mediapipe
+tensorflow
+numpy<2
+av
 pandas
 matplotlib
 scikit-learn
-tensorflow-cpu
-numpy<2
-streamlit
-streamlit-webrtc
-av
