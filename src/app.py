@@ -63,33 +63,44 @@ class ASLProcessor(VideoProcessorBase):
         self.debounce_counter = 0
         self.min_threshold_frames = 10
         self.last_prediction = None
+        
+        # Frame Skipping & Caching
+        self.frame_count = 0
+        self.skip_rate = 5
+        self.last_hand_landmarks = None
+        self.last_prediction = "?"
+        self.last_confidence = 0.0
 
     def recv(self, frame):
         try:
             img = frame.to_ndarray(format="bgr24")
+            self.frame_count += 1
             
             # 1. Mirror Flip
             img = cv2.flip(img, 1)
             h, w, _ = img.shape
             
-            # 2. Hand Tracking
-            rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            results = hands.process(rgb_img)
-            
-            predicted_letter = "?"
-            confidence = 0.0
-            
-            if results.multi_hand_landmarks:
-                for hand_landmarks in results.multi_hand_landmarks:
-                    mp_draw.draw_landmarks(img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            # --- AI PROCESSING (Every Nth Frame) ---
+            if self.frame_count % self.skip_rate == 0:
+                # 2. Hand Tracking
+                rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                results = hands.process(rgb_img)
+                
+                # Reset cache if nothing found
+                self.last_hand_landmarks = None
+                self.last_prediction = "?"
+                self.last_confidence = 0.0
+                
+                if results.multi_hand_landmarks:
+                    # Take the first hand
+                    self.last_hand_landmarks = results.multi_hand_landmarks[0]
                     
                     # 3. Feature Extraction
                     landmarks = []
-                    wrist_x = hand_landmarks.landmark[0].x
-                    wrist_y = hand_landmarks.landmark[0].y
+                    wrist_x = self.last_hand_landmarks.landmark[0].x
+                    wrist_y = self.last_hand_landmarks.landmark[0].y
                     
-                    for lm in hand_landmarks.landmark:
-                        # Normalize relative to wrist
+                    for lm in self.last_hand_landmarks.landmark:
                         landmarks.append(lm.x - wrist_x)
                         landmarks.append(lm.y - wrist_y)
                     
@@ -98,14 +109,21 @@ class ASLProcessor(VideoProcessorBase):
                         input_data = np.array([landmarks], dtype=np.float32)
                         preds = model.predict(input_data, verbose=0)
                         class_idx = np.argmax(preds)
-                        confidence = preds[0][class_idx]
+                        self.last_confidence = preds[0][class_idx]
                         
                         if class_labels is not None and class_idx < len(class_labels):
-                            predicted_letter = class_labels[class_idx]
+                            self.last_prediction = class_labels[class_idx]
+
+            # --- DRAWING & GAME LOGIC (Every Frame using Cache) ---
+            
+            # Draw Landmarks (from cache)
+            if self.last_hand_landmarks:
+                mp_draw.draw_landmarks(img, self.last_hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            
+            predicted_letter = self.last_prediction
+            confidence = self.last_confidence
             
             # 5. Game Logic
-            # Note: Accessing st.session_state inside recv() can be unstable in some Streamlit versions
-            # but is the requested approach.
             if 'current_word' in st.session_state:
                 target_word = st.session_state['current_word']
                 target_letter = target_word[st.session_state['word_idx']].upper() if target_word else ""
