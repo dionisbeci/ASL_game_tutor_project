@@ -14,8 +14,8 @@ sys.path.append(os.path.dirname(__file__))
 from tutor_logic import TutorAgent
 
 # --- Configuration ---
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "mlp_model.h5")
-LABEL_MAP_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "label_map_mlp.npy")
+MODEL_PATH = "mlp_model.h5"
+LABEL_MAP_PATH = "label_map.npy"
 
 # --- Resource Loading ---
 @st.cache_resource
