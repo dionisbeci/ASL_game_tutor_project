@@ -282,6 +282,15 @@ with col2:
                 ctx.video_processor.skip_word_action()
     
     st.markdown("---")
+    st.markdown("### Performance")
+    
+    # Restored: Access mistake count from the processor if available
+    if ctx.video_processor:
+        mistakes = ctx.video_processor.agent.mistake_count
+        st.bar_chart(mistakes)
+    else:
+        st.info("Start video to see performance.")
+
     if st.button("Reset Progress", type="primary"):
         if ctx.video_processor:
             ctx.video_processor.reset_progress()
