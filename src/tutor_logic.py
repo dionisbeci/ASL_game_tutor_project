@@ -13,8 +13,8 @@ class TutorAgent:
         
         self.words = self._load_words(words_file_path)
         
-        # Initialize mistake_count dictionary for letters A-Z (all start at 0)
-        self.mistake_count = {chr(i): 0 for i in range(ord('A'), ord('Z') + 1)}
+        # Initialize performance_score dictionary for letters A-Z (all start at 0)
+        self.performance_score = {chr(i): 0 for i in range(ord('A'), ord('Z') + 1)}
         
     def _load_words(self, path):
         """Loads words from a text file, one per line."""
@@ -28,43 +28,38 @@ class TutorAgent:
 
     def update_performance(self, letter, is_correct):
         """
-        Updates the error count for a specific letter.
+        Updates the performance score for a specific letter.
         :param letter: The character to update (A-Z).
         :param is_correct: Boolean indicating if the user got it right.
         """
         letter = letter.upper()
-        if letter in self.mistake_count:
+        if letter in self.performance_score:
             if not is_correct:
-                # If incorrect, increment the mistake count
-                self.mistake_count[letter] += 1
+                # If incorrect, decrease score
+                self.performance_score[letter] -= 1
             else:
-                # If correct, slightly decrease the count (min 0)
-                self.mistake_count[letter] = max(0, self.mistake_count[letter] - 0.5)
+                # If correct, increase score
+                self.performance_score[letter] += 1
 
     def get_next_word(self):
         """
-        The AI Logic: Find weak letters and pick a word containing them.
+        The AI Logic: Find weak letters (lowest scores) and pick a word containing them.
         """
-        # Find letters with error counts > 0
-        weak_letters = [l for l, count in self.mistake_count.items() if count > 0]
+        # Sort letters by score (ascending: worst performance first)
+        sorted_letters = sorted(self.performance_score.items(), key=lambda x: x[1])
         
-        if not weak_letters:
-            # If no weak letters, return a random word
-            return random.choice(self.words)
+        # Take the top 5 weakest letters
+        weak_letters = [l for l, score in sorted_letters[:5]]
         
-        # Sort weak letters by error count (descending)
-        weak_letters.sort(key=lambda l: self.mistake_count[l], reverse=True)
-        
-        # Try to find words containing the most "difficult" letters first
+        # Try to find words containing the weak letters
         for weak_letter in weak_letters:
             candidate_words = [word for word in self.words if weak_letter in word]
             if candidate_words:
-                # Pick a random candidate word that contains the weak letter
                 return random.choice(candidate_words)
         
-        # Fallback to random word if no word contains the weak letters
+        # Fallback
         return random.choice(self.words)
 
     def get_stats(self):
-        """Returns the current error stats."""
-        return self.mistake_count
+        """Returns the current performance stats."""
+        return self.performance_score

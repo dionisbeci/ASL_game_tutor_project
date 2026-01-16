@@ -3,11 +3,14 @@ from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfigurati
 import av
 import cv2
 import numpy as np
+import pandas as pd
+import altair as alt
 import tensorflow as tf
 import mediapipe as mp
 import os
 import sys
 import traceback
+import time
 import threading
 
 # Add the current directory to sys.path to allow importing tutor_logic
@@ -284,12 +287,31 @@ with col2:
     st.markdown("---")
     st.markdown("### Performance")
     
-    # Restored: Access mistake count from the processor if available
+    # Real-time Performance Chart Logic
+    chart_placeholder = st.empty()
+    
+    def render_chart(stats):
+        if not stats: return None
+        df = pd.DataFrame(list(stats.items()), columns=['Letter', 'Score'])
+        
+        chart = alt.Chart(df).mark_bar().encode(
+            x='Letter',
+            y='Score',
+            color=alt.condition(
+                alt.datum.Score < 0,
+                alt.value('red'),
+                alt.value('steelblue')
+            )
+        ).properties(title="Performance Score (Correct vs Incorrect)")
+        
+        return chart
+
+    # Initial Render
     if ctx.video_processor:
-        mistakes = ctx.video_processor.agent.mistake_count
-        st.bar_chart(mistakes)
+        mistakes = ctx.video_processor.agent.get_stats()
+        chart_placeholder.altair_chart(render_chart(mistakes), use_container_width=True)
     else:
-        st.info("Start video to see performance.")
+        chart_placeholder.info("Start video to see performance.")
 
     if st.button("Reset Progress", type="primary"):
         if ctx.video_processor:
@@ -302,3 +324,13 @@ with col2:
     3.  Hold the sign until the green bar fills up.
     4.  Use buttons above to skip actions.
     """)
+
+# --- Real-time Update Loop ---
+if ctx.state.playing:
+    while True:
+        if ctx.video_processor:
+            mistakes = ctx.video_processor.agent.get_stats()
+            chart = render_chart(mistakes)
+            if chart:
+                chart_placeholder.altair_chart(chart, use_container_width=True)
+        time.sleep(0.5)
